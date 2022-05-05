@@ -9,7 +9,7 @@ const main = () => {
     const firstNumber = getData('Введите первое число');
     const isValidFirstNumber = validateNumber(firstNumber);
 
-    if(!isValidFirstNumber) {
+    if (!isValidFirstNumber) {
         console.log('Неверный ввод!');
 
         return;
@@ -18,7 +18,7 @@ const main = () => {
     const secondNumber = getData('Введите второе число');
     const isValidSecondNumber = validateNumber(secondNumber);
 
-    if(!isValidSecondNumber || Number(secondNumber) === 0) {
+    if (!isValidSecondNumber || Number(secondNumber) === 0) {
         console.log('Неверный ввод!');
 
         return;

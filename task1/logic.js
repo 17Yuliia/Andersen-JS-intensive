@@ -22,7 +22,7 @@ const main = () => {
 
     const isValidParams = validateParams(numberInput, baseInput);
 
-    if(isValidParams) {
+    if (isValidParams) {
         console.log(convertValue(+numberInput, +baseInput));
     } else {
         console.log('Неверный ввод!');
