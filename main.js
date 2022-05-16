@@ -11,6 +11,7 @@ const concatStrings = (value, separator) => {
         }
         
         const result = `${value}${validSeparator}${next}`;
+
         return concatStrings(result, validSeparator);
     }
     
@@ -41,35 +42,35 @@ class Calculator {
         }
     }
 
-    setX = ((x) => {
+    setX = (x) => {
         if (isValidNumber(x)) {
             this.x = x;
         }
-    }).bind(this);
+    };
 
-    setY = ((y) => {
+    setY = (y) => {
         if (isValidNumber(y)) {
             this.y = y;
         }
-    }).bind(this);
+    };
 
-    logSum = (() => {
+    logSum = () => {
         console.log(this.x + this.y);
-    }).bind(this);
+    };
 
-    logMul = (() => {
+    logMul = () => {
         console.log(this.x * this.y);
-    }).bind(this);
+    };
 
-    logSub = (() => {
+    logSub = () => {
         console.log(this.x - this.y);
-    }).bind(this);
+    };
 
-    logDiv = (() => {
+    logDiv = () => {
         if (this.y === 0) {
             throw new Error('Dividing by zero!');
         }
 
         console.log(this.x / this.y);
-    }).bind(this);
+    };
 }
