@@ -2,10 +2,11 @@ class Controller {
     constructor() {
         this.view = new View();
         this.model = new Model();
+        this.calculator = new Calculator();
     }
   
     init() {
-        this.view.init();
+        this.view.init(this.model.currentValue, this.model.previousValue);
 
         this.view.addListenerForElement(this.view.sign, this.signButtonHandler);
         this.view.addListenerForElement(this.view.equal, this.equalButtonHandler);
@@ -17,7 +18,7 @@ class Controller {
     }
 
     signButtonHandler = () => {
-        if (this.model.currentValue === '') {
+        if (this.model.isEmptyCurrentValue() || this.model.isErrorCurrentValue() || this.model.currentValue === '0') {
             return;
         }
 
@@ -26,7 +27,9 @@ class Controller {
     }
 
     equalButtonHandler = () => {
-        if (this.model.currentValue === '' || this.model.previousValue === '') {
+        const isEmptyValue = this.model.isEmptyPreviousValue() || this.model.isEmptyCurrentValue();
+
+        if (isEmptyValue || this.model.isErrorCurrentValue()) {
             return;
         }
 
@@ -40,7 +43,11 @@ class Controller {
     }
 
     backspaceButtonHandler = () => {
-        this.model.currentValue = this.model.currentValue.slice(0, -1);
+        if (this.model.isErrorCurrentValue()) {
+            this.clearAll();
+        }
+
+        this.model.removeLastFromCurrentValue();
         this.updateView();
     }
 
@@ -63,58 +70,70 @@ class Controller {
             return;
         }
 
-        this.model.currentValue = `${this.model.currentValue}${number}`;
-    }
-
-    chooseOperation(operation) {
-        if (this.model.currentValue === '' && this.model.previousValue === '') {
+        if (number === '0' && this.model.currentValue === '0') {
             return;
         }
 
-        if (this.model.currentValue === '') {
+        if ((this.model.currentValue === '0' && number !== '.') || this.model.isErrorCurrentValue()) {
+            this.model.setCurrentValue('');
+        }
+
+        const value = `${this.model.currentValue}${number}`;
+        this.model.setCurrentValue(value);
+    }
+
+    chooseOperation(operation) {
+        const isEmptyValues = this.model.isEmptyPreviousValue() && this.model.isEmptyCurrentValue();
+
+        if (this.model.isErrorCurrentValue() || isEmptyValues) {
+            return;
+        }
+
+        if (this.model.isEmptyCurrentValue()) {
             this.model.operation = operation;
             return;
         }
 
-        if (this.model.previousValue !== '') {
+        if (!this.model.isEmptyPreviousValue() && !this.model.isEmptyCurrentValue()) {
             this.compute();
-        }
+        }        
 
         this.model.operation = operation;
-        this.model.previousValue = this.model.currentValue;
-        this.model.currentValue = '';
+        this.model.setPreviousValue(this.model.currentValue);
+        this.model.setCurrentValue('');
     }
 
     compute() {
-        let result;
         const current = +this.model.currentValue;
         const previous = +this.model.previousValue;
-        const calculator = new Calculator(previous, current);
 
+        this.calculator.setX(previous);
+        this.calculator.setY(current);
+
+        const result = this.makeOperation();
+
+        this.model.setCurrentValue(result.toString());
+        this.model.setInitialPreviousValue();
+        this.model.operation = '';
+    }
+
+    makeOperation() {
         switch (this.model.operation) {
             case '+': {
-                result = calculator.sum();
-                break;
+                return this.calculator.sum();
             }
             case '−': {
-                result = calculator.sub();
-                break;
+                return this.calculator.sub();
             }
             case '×': {
-                result = calculator.mul();
-                break;
+                return this.calculator.mul();
             }
             case '÷': {
-                result = calculator.div();
-                break;
+                return this.calculator.div();
             }
             default:
                 return;
         }
-
-        this.model.currentValue = result.toString();
-        this.model.previousValue = '';
-        this.model.operation = '';
     }
 
     updateView() {
@@ -126,8 +145,8 @@ class Controller {
     }
 
     clearAll() {
-        this.model.currentValue = '';
-        this.model.previousValue = '';
+        this.model.setInitialCurrentValue();
+        this.model.setInitialPreviousValue();
         this.model.operation = '';
     }
 }

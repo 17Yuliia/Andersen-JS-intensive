@@ -8,9 +8,12 @@ const ACTION_OPTIONS = [
 ];
 
 class View {
-    init() {
+    init(currentValue, previousValue) {
         this.input = document.getElementById(INPUT_ID);
         this.history = document.getElementById(HISTORY_ID);
+
+        this.setInnerText(this.input, currentValue);
+        this.setInnerText(this.history, previousValue);
 
         ACTION_OPTIONS.forEach((option) => {
             this[option] = document.querySelector(`[option=${option}]`);

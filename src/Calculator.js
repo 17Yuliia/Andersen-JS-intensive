@@ -11,13 +11,19 @@ const isValidNumber = (value) => {
 }
 
 class Calculator {
-    constructor(x, y) {
-        if (arguments.length !== 2) {
-            throw new Error('Constructor needs two arguments!');
-        }
+    constructor() {
+        this.x = 0;
+        this.y = 0;
+    }
 
-        if (isValidNumber(x) && isValidNumber(y)) {
+    setX(x) {
+        if (isValidNumber(x)) {
             this.x = x;
+        }
+    }
+
+    setY(y) {
+        if (isValidNumber(y)) {
             this.y = y;
         }
     }
@@ -36,7 +42,7 @@ class Calculator {
 
     div = () => {
         if (this.y === 0) {
-            throw new Error('Dividing by zero!');
+            return 'ERROR';
         }
 
         return this.x / this.y;
