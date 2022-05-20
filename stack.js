@@ -1,5 +1,3 @@
-const { nullLiteralTypeAnnotation } = require("@babel/types");
-
 function isValidSize(value) {
     const valueIsInteger = Number.isInteger(value);
     const valueIsPositive = value > 0;
