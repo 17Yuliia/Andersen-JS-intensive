@@ -8,93 +8,180 @@ class Controller {
     init() {
         this.view.init(this.model.currentValue, this.model.previousValue);
 
-        this.view.addListenerForElement(this.view.sign, this.signButtonHandler);
-        this.view.addListenerForElement(this.view.equal, this.equalButtonHandler);
-        this.view.addListenerForElement(this.view.cancel, this.cancelButtonHandler);
-        this.view.addListenerForElement(this.view.backspace, this.backspaceButtonHandler);
+        this.addListeners();
+    }
 
+    addListeners() {
+        this.view.addKeydownListener(this.documentKeydownHandler);
+
+        this.view.addListenerForElement(this.view.equal, this.equalButtonHandler);
+
+        this.view.addListenerForElements(this.view.actions, this.actionButtonsHandler)
         this.view.addListenerForElements(this.view.numbers, this.numberButtonsHandler);
         this.view.addListenerForElements(this.view.operations, this.operationButtonsHandler);
     }
 
-    signButtonHandler = () => {
-        if (this.model.isEmptyCurrentValue() || this.model.isErrorCurrentValue() || this.model.currentValue === '0') {
-            return;
-        }
-
-        this.model.currentValue *= -1;
-        this.updateView();
-    }
-
     equalButtonHandler = () => {
-        const isEmptyValue = this.model.isEmptyPreviousValue() || this.model.isEmptyCurrentValue();
-
-        if (isEmptyValue || this.model.isErrorCurrentValue()) {
+        const isNotCountable = this.checkIsAnyEmpty() || this.model.checkIsErrorCurrentValue();
+        
+        if (isNotCountable) {
             return;
         }
 
         this.compute();
         this.updateView();
-    }
+        this.model.isAfterResult = true;
+    }    
 
-    cancelButtonHandler = () => {
-        this.clearAll();
-        this.updateView();
-    }
-
-    backspaceButtonHandler = () => {
-        if (this.model.isErrorCurrentValue()) {
-            this.clearAll();
+    numberButtonsHandler = (number) =>  {
+        if (this.checkIsAfterErrorOrResult()) {
+            this.model.resetValues();
         }
 
-        this.model.removeLastFromCurrentValue();
-        this.updateView();
-    }
-
-    numberButtonsHandler = (element) =>  {
-        const number = this.view.getInnerText(element);
+        if (this.model.currentValue.length >= INPUT_MAX_SIZE) {
+            return;
+        }
 
         this.addNumber(number);
         this.updateView();
     }
 
-    operationButtonsHandler = (element) => {
-        const operation = this.view.getInnerText(element);
+    actionButtonsHandler = (action) => {
+        switch (action) {
+            case OPTION_CODES.escape: {
+                this.model.resetValues();;
+                break;
+            }
+            case OPTION_CODES.backspace: {
+                this.deleteLast();
+                break;
+            }
+            case OPTION_CODES.sign: {
+                this.changeSign();
+                break;
+            }
+            default: {
+                return;
+            }
+        }
 
+        this.updateView();
+    }
+
+    operationButtonsHandler = (operation) => {
+        this.model.isAfterResult = false;
         this.chooseOperation(operation);
         this.updateView();
+    }
+
+    documentKeydownHandler = (key) => {
+        const button = Object.values(BUTTONS).find((btn) => btn.value === key);
+
+        if (!button) {
+            return;
+        }
+
+        const keyOption = button.option;
+
+        switch(keyOption) {
+            case OPTIONS.equal: {
+                this.equalButtonHandler();
+                break;
+            }
+            case OPTIONS.number: {
+                this.numberButtonsHandler(key);
+                break;
+            }
+            case OPTIONS.action: {
+                this.actionButtonsHandler(key);
+                break;
+            }
+            case OPTIONS.operation: {
+                this.operationButtonsHandler(key);
+                break;
+            }
+            default: {
+                return;
+            }
+        }
+    }
+
+    checkIsAfterErrorOrResult() {
+        return this.model.isAfterResult || this.model.checkIsErrorCurrentValue();
+    }
+
+    checkIsAnyEmpty() {
+        const isEmptyCurrent = this.model.checkIsEmptyCurrentValue();
+        const isEmptyPrevious = this.model.checkIsEmptyPreviousValue();
+        const isAnyEmpty = isEmptyCurrent || isEmptyPrevious;
+
+        return isAnyEmpty;
+    }
+
+    deleteLast() {
+        if (this.checkIsAfterErrorOrResult()) {
+            this.model.resetValues();
+        }
+
+        if (this.model.currentValue.includes('-') && this.model.currentValue.length === 2) {
+            this.model.setCurrentValue('');
+        }
+
+        this.model.removeLastFromCurrentValue();
+    }
+
+    changeSign() {
+        if (this.checkIsAfterErrorOrResult()) {
+            this.model.resetValues();
+        }
+
+        let signedValue = `${this.model.currentValue * -1}`;
+
+        if (this.model.currentValue in SIGNED_VALUES) {
+            signedValue = SIGNED_VALUES[this.model.currentValue];
+        }
+
+        this.model.setCurrentValue(signedValue);
     }
 
     addNumber(number) {
         if (number === '.' && this.model.currentValue.includes('.')) {
             return;
         }
+        
+        if (number === '.' && this.model.checkIsEmptyCurrentValue()) {
+            this.model.currentValue = `${this.model.currentValue}0`;
+        }
 
-        if (number === '0' && this.model.currentValue === '0') {
+        const currentValueIsZero = this.model.currentValue === '0' || this.model.currentValue === '-0';
+
+        if (number === '0' && currentValueIsZero) {
             return;
         }
 
-        if ((this.model.currentValue === '0' && number !== '.') || this.model.isErrorCurrentValue()) {
-            this.model.setCurrentValue('');
+        if (currentValueIsZero && number !== '.') {
+            this.model.removeLastFromCurrentValue();
         }
 
-        const value = `${this.model.currentValue}${number}`;
+        const value = `${this.model.currentValue}${number}`; 
         this.model.setCurrentValue(value);
     }
 
     chooseOperation(operation) {
-        const isEmptyValues = this.model.isEmptyPreviousValue() && this.model.isEmptyCurrentValue();
+        const isEmptyCurrent = this.model.checkIsEmptyCurrentValue();
+        const isEmptyPrevious = this.model.checkIsEmptyPreviousValue();
+        const isEmptyBoth = isEmptyCurrent && isEmptyPrevious;
 
-        if (this.model.isErrorCurrentValue() || isEmptyValues) {
+        if (isEmptyBoth || this.model.checkIsErrorCurrentValue()) {
             return;
         }
 
-        if (this.model.isEmptyCurrentValue()) {
+        if (isEmptyCurrent) {
             this.model.operation = operation;
             return;
         }
 
-        if (!this.model.isEmptyPreviousValue() && !this.model.isEmptyCurrentValue()) {
+        if (!isEmptyCurrent && !isEmptyPrevious) {
             this.compute();
         }        
 
@@ -113,40 +200,49 @@ class Controller {
         const result = this.makeOperation();
 
         this.model.setCurrentValue(result.toString());
-        this.model.setInitialPreviousValue();
+        this.model.setPreviousValue('');
         this.model.operation = '';
     }
 
     makeOperation() {
         switch (this.model.operation) {
-            case '+': {
+            case OPERATIONS.plus: {
                 return this.calculator.sum();
             }
-            case '−': {
+            case OPERATIONS.minus: {
                 return this.calculator.sub();
             }
-            case '×': {
+            case OPERATIONS.multiply: {
                 return this.calculator.mul();
             }
-            case '÷': {
+            case OPERATIONS.divide: {
                 return this.calculator.div();
             }
-            default:
+            default: {
                 return;
+            }
         }
     }
 
     updateView() {
-        const input = this.model.currentValue;
-        const history = `${this.model.previousValue} ${this.model.operation}`;
-        
-        this.view.setInnerText(this.view.input, input);
+        const formatedCurrentValue = new NumberFormat(this.model.currentValue);
+        const formatedPreviousValue = new NumberFormat(this.model.previousValue);
+
+        const input = formatedCurrentValue.toOutputFormat();
+        const operation = this.getOperationLabel(this.model.operation);
+        const history = `${formatedPreviousValue.toOutputFormat()} ${operation}`;
+
+        this.view.setInnerText(this.view.input, input, true);
         this.view.setInnerText(this.view.history, history);
     }
 
-    clearAll() {
-        this.model.setInitialCurrentValue();
-        this.model.setInitialPreviousValue();
-        this.model.operation = '';
+    getOperationLabel(value) {
+        if (!value) {
+            return '';
+        }
+
+        const button = Object.values(BUTTONS).find((btn) => btn.value === value);
+
+        return button.label;
     }
 }
